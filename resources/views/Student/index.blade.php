@@ -1,27 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <link href="https://cdn.datatables.net/1.10.19/css/dataTables.bootstrap4.min.css" rel="stylesheet">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.js"></script>  
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.0/jquery.validate.js"></script>
-    <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
-    <title>Document</title>
-</head>
-
-<body>
+@extends('master')
+@section('content')
     <div class="row pt-5">
         <div class="col-1"></div>
         <div class="col-10">
        <h4>Students</h4>
-       <a href="{{route('student.create')}}" class="btn btn-success float-right">Create Student</a>
-        <table class="table table-bordered data-table">
+        <a href="{{route('student.create')}}" class="btn btn-success float-right">Create Student</a>
+        <select  name="cityFilter" id="cityFilter" class="float-right cityFilter mr-2">
+        <option value="0">All City</option>
+        <option value="rajkot">Rajkot</option>
+        <option value="ahemdavad">Ahemdavad</option>
+        <option value="surat">Surat</option>
+       </select> 
+       <table class="table table-bordered data-table">
         <thead>
             <tr>
                 <th>No</th>
@@ -40,17 +30,60 @@
         </div>
         <div class="col-1"></div>
     </div>
-</body>
 
-</html>
+<div class="modal fade exampleModal" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form  id="" action="{{route('editmodel')}}" method="post">
+            <input type="hidden" name="">
+      <select  name="project" id="project" class="form-control project mr-2">
+        <option value="">All Project</option>
+         @foreach($projectList as $project)
+         <option value="{{$project->id}}">{{$project->name}}</option>
+         @endforeach
+       </select> </br>
 
+       <select  name="developer" id="developer" class="form-control developer mr-2">
+        <option value="">All developer</option>
+       </select> 
+        </form>
+      </div> 
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+@endsection
+@push('script')
+
+  
     <script type="text/javascript">
-  $(function () {
-    
+  
+    function Data()
+    {
+        $('#cityFilter option[value="' + localStorage.getItem("filterCity") +'"]').attr("selected", "selected");
+
     var table = $('.data-table').DataTable({
         processing: true,
         serverSide: true,
-        ajax: "{{ route('student.getdata') }}",
+        destroy:true,
+        ajax: {
+            url: "{{ route('student.getdata') }}",
+            data: function (d) {
+                //  d.cityFilterId = $('.cityFilter option:selected').val();
+                 d.cityFilterId = localStorage.getItem("filterCity");
+                 
+            }
+            },
         columns: [
             {data: 'DT_RowIndex', name: 'DT_RowIndex'},
             {data: 'name', name: 'name'},
@@ -62,7 +95,79 @@
             {data: 'action', name: 'action', orderable: false, searchable: false},
         ]
     });
-    
-  });
+}
 
+Data();
+
+$.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+
+  $(document).on('click', '.delete_button', function (e) {
+    e.preventDefault();
+   var id = $(this).data('id');
+  
+   swal({
+              title: `Are you sure you want to delete this record?`,
+              text: "If you delete this, it will be gone forever.",
+              icon: "warning",
+              buttons: true,
+              dangerMode: true,
+          })
+          .then((willDelete) => {
+            if (willDelete) {
+                $.ajax({
+                        type: "post",
+                        url: "{{route('student.delete')}}",
+                        data: {
+                            id: id,
+                            "_token":"{{csrf_token()}}",
+                        },
+                        dataType: "json",
+                        success: function(response) {
+                            Data();
+                        }
+                    });
+            }
+          });
+});
+
+$('.cityFilter').on('change',function(){
+    // var cityFilterId = $('.cityFilter option:selected').val();
+    // var url = "{{route('student.filterdata', '')}}"+"/"+cityFilterId;
+    //  window.location=url;
+    localStorage.setItem("filterCity", this.value);
+
+    // $.cookie("filterCity", this.value);
+    Data();
+});
+
+function openModel(id)
+{ 
+  $('#exampleModal').show();
+}
+
+ $('.project').on('change',function(){
+    $('.developer').empty();
+    projectId= $(this).val();
+    $.ajax({
+        type: "post",
+        url: "{{route('getdeveloper')}}",
+        data: {
+            projectId : projectId,
+            "_token":"{{csrf_token()}}",
+        },
+        dataType: "json",
+        success: function (response) { 
+            $.each(response.developer, function(key,val) {             
+                $('.developer').append('<option value="'+val.id+'">'+val.name+'</option>');
+        });    
+               
+            
+        }
+    });
+ });
 </script>
+@endpush

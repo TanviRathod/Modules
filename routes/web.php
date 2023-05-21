@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\StudentsController;
+use App\Http\Controllers\ProjectController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,8 +16,14 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('Student.index');
 });
+//Route::get('project',[ProjectController::class,'project'])->name('project');
+//Route::resource('project',ProjectController::class);
+
 Route::get('student/getdata',[StudentsController::class,'getdata'])->name('student.getdata');
-Route::get('student/delete/{id}',[StudentsController::class,'delete'])->name('student.delete');
+Route::post('student/delete',[StudentsController::class,'delete'])->name('student.delete');
+Route::get('student/filterdata/{cityFilterId}',[StudentsController::class,'FilterData'])->name('student.filterdata');
+Route::post('getdeveloper',[StudentsController::class,'getdeveloper'])->name('getdeveloper');
+Route::post('editmodel',[StudentsController::class,'editmodel'])->name('editmodel');
 Route::resource('student',StudentsController::class);

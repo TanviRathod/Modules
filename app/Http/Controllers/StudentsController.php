@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Developer;
+use App\Models\Project;
 use App\Models\Student;
 use Illuminate\Http\Request;
 use DataTables;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Session;
 
 class StudentsController extends Controller
 {
@@ -15,7 +19,8 @@ class StudentsController extends Controller
      */
     public function index() 
     {
-        return view('Student.index');
+        $projectList = Project::all();
+        return view('Student.index',compact('projectList'));
     }
 
     /**
@@ -39,7 +44,7 @@ class StudentsController extends Controller
        $request->validate([
         'name'=>"required|max:50|min:5",
         'age'=>"required|before:-25 years",//|between:20,25
-        'profile'=>"required|mimes:jpg,png,jpeg",
+        'profile'=>"required|mimes:jpg,png,jpeg",//|size:2048
         'gender'=>"required",
         'hobby'=>"required",
         'country'=>"required",
@@ -78,11 +83,7 @@ class StudentsController extends Controller
     public function edit($id)
     {
         $student_id=Student::findOrFail($id);
-        return view('Student.edit', [
-            'student_id' => $student_id,
-            'hobby_value' =>json_decode($student_id->hobby)
-        ]);
-        
+        return view('Student.edit',compact('student_id'));        
     }
 
     /**
@@ -132,18 +133,21 @@ class StudentsController extends Controller
      */
     public function destroy($id)
     {
-       
-    }
-    public function delete($id)
-    {
         $student_id=Student::find($id)->delete();
         return redirect()->back();
+    }
+    public function delete(Request $request)
+    {
+       
+        $student_id=Student::find($request->id)->delete();
+        return response()->json(['status'=>"true"]);
     }
 
     public function getdata(Request $request)
     {
         if ($request->ajax()) {
-            $data = Student::all();
+         
+            $data = Student::all();                                                                                                 
             return Datatables::of($data)
                     ->addIndexColumn()
                     ->addColumn('profile', function($row){
@@ -157,14 +161,63 @@ class StudentsController extends Controller
                     ->addColumn('action', function($row){
      
                            $btn = '<a href="'.route('student.edit',$row->id).'" class="edit btn btn-primary btn-sm">Edit</a>';
-                           $btn .= '<a href="'.route('student.delete',$row->id).'" class="edit btn btn-danger btn-sm ml-2">Delete</a>';
-    
-                            return $btn;
+                           $btn .= '<a href="" data-id="'.$row->id.'" class="btn btn-danger btn-sm ml-2 delete_button">Delete</a>';
+                           $btn .= '<a href="" data-id="'.$row->id.'" class="btn btn-info btn-sm ml-2" data-toggle="modal" data-target="#exampleModal" onclick=openModel('.$row->id.')>Add Project</a>';
+                           return $btn;
                     })
                     ->rawColumns(['action','profile'])
                     ->make(true);
         }
+
+
         
         return view('Student.index');
     }
+
+    public function FilterData(Request $request,$cityFilterId)
+    {
+        $CityFilter = $request->cityFilterId ? ($cityFilterId) : 0 ;
+        $studentList= Student::where('country',$cityFilterId)->first();
+      
+      
+        if(!empty($CityFilter))
+        {
+            Cookie::queue('CityFilter',$cityFilterId);
+            $studentList= Student::where('country',$cityFilterId)->first();
+        }
+           
+        $value =Cookie::get('CityFilter');
+        if(!empty($value))
+        {
+               
+            if(!empty($CityFilter))
+            {
+                $studentList= Student::where('country',$CityFilter)->first();
+            }
+            else
+            {
+                $studentList= Student::where('country',$value)->first();
+            }
+        }
+
+        return $studentList;
+       
+    }
+
+    public function getdeveloper(Request $request)
+    {
+        $developer = Developer::where('project_id',$request->projectId)->get();
+        return response()->json([   
+            "developer"=>$developer
+        ]);
+    }
+
+    public function editmodel()
+    {
+        
+    }
 }
+//
+//  coukumn name lakho where ma
+// ek project ek rakhi baki multipal select karvanu
+//find karcanu ke get? id match thay a lay jav chu / to developer multiple nai hoy hoy ne
