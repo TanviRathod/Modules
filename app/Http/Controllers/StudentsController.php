@@ -217,7 +217,4 @@ class StudentsController extends Controller
         
     }
 }
-//
-//  coukumn name lakho where ma
-// ek project ek rakhi baki multipal select karvanu
-//find karcanu ke get? id match thay a lay jav chu / to developer multiple nai hoy hoy ne
+
